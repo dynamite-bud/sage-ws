@@ -3,6 +3,8 @@ import json
 import jsonschema
 import googlemaps
 from enum import Enum
+from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 
 # GMAP_API_KEY = "AIzaSyAIRJJ9PYAAlDqzwcLhl082fog-rxPHigI"
@@ -59,6 +61,14 @@ class APIType(str, Enum):
 
 
 app = FastAPI()
+origins = ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def transit_mode_list_to_string(transit_mode_list: list[str]) -> str:
@@ -147,3 +157,30 @@ async def websocket_endpoint(websocket: WebSocket, api_type: APIType, session_id
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+
+class ShortestPathProps(BaseModel):
+    from_point: list[float]
+    to_point: list[float]
+
+# waypoints=via:enc:wc~oAwquwMdlTxiKtqLyiK:|enc:c~vnAamswMvlTor@tjGi}L:| via:enc:udymA{~bxM:
+# I get a list of polyline strings from the client
+
+
+def get_waypoints_from_polyline(polylines: list[str]) -> str:
+    # Don't insert | at the end
+    return "|".join([f"via:enc:{polyline}:" for polyline in polylines])
+
+
+@app.post("/shortest_route/")
+async def shortest_route(props: ShortestPathProps):
+    props_json = json.loads(props.json())
+
+    directions_result = gmaps.directions(
+        origin=f"{props_json['from_point'][1]}," f"{props_json['to_point'][0]}",
+        destination=f"{props_json['to_point'][1]}," f"{props_json['to_point'][0]}",
+        alternatives=True, units="metric",
+        mode=TransportMode.driving,
+        language="en")
+
+    return directions_result
