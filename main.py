@@ -7,10 +7,6 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
 
-# GMAP_API_KEY = "AIzaSyAIRJJ9PYAAlDqzwcLhl082fog-rxPHigI"
-GMAP_API_KEY = "AIzaSyBxhljI-42-8Sn2UOAVf3Cw_9lH4otQ6vY"
-
-
 class TransportMode(str, Enum):
     driving = "driving"
     walking = "walking"
